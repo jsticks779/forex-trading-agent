@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+credentials/
+logs/
+/tmp/
+*.log
+.DS_Store
+headless-mt5/config/.wine
+headless-mt5/config/.vnc
+headless-mt5/config/common.ini

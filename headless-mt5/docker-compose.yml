@@ -1,0 +1,31 @@
+services:
+  mt5:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mt5
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-UTC}
+      - CUSTOM_USER=${CUSTOM_USER:-admin}
+      - PASSWORD=${PASSWORD:-changeme}
+      - WINEPREFIX=/config/.wine
+      - WINEARCH=win64
+    ports:
+      # FastAPI (MetaTrader5 HTTP wrapper). See the security note in the README
+      # before exposing this beyond localhost — the API has no built-in auth.
+      - "127.0.0.1:5001:5001"
+      # KasmVNC web desktop — used for the one-time broker login.
+      - "127.0.0.1:3000:3000"
+    volumes:
+      # Persists the Wine prefix + MT5 install + terminal config across restarts.
+      # First boot populates this; subsequent boots are fast.
+      - ./config:/config
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5001/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # First boot downloads + installs MT5 and Windows Python into the Wine
+      # prefix, which takes several minutes — give it a generous grace period.
+      start_period: 15m
