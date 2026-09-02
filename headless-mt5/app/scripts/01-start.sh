@@ -27,6 +27,9 @@ EOF
 # Start FastAPI server inside Wine
 /scripts/09-start-wine-fastapi.sh
 
+# Start Apex FX Streamlit Dashboard on port 8501
+python3 -m streamlit run /app/app/dashboard/app.py --server.port=8501 --server.address=0.0.0.0 &
+
 log_message "INFO" "------------------------------------------------"
 log_message "INFO" "Container is ready."
 
