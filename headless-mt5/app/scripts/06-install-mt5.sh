@@ -57,7 +57,36 @@ else
     fi
     
     log_message "INFO" "Installing MetaTrader 5..."
+
+    # MetaQuotes' installer injects an anti-debugging check ("A debugger has
+    # been found running in your system") that can block under Wine. Run a
+    # helper that watches for any mt5setup/terminal64 window and dismisses it
+    # (Enter + click on the OK button) until the terminal is installed.
+    (
+        END=$((SECONDS + 900))
+        while [ $SECONDS -lt $END ]; do
+            [ -e "$mt5file" ] && break
+            for W in $(DISPLAY="$DISPLAY" xdotool search --name "mt5setup.exe" 2>/dev/null); do
+                DISPLAY="$DISPLAY" xdotool windowactivate "$W" 2>/dev/null
+                DISPLAY="$DISPLAY" xdotool key --window "$W" Return 2>/dev/null
+                DISPLAY="$DISPLAY" xdotool windowfocus "$W" 2>/dev/null
+                eval $(DISPLAY="$DISPLAY" xdotool getwindowgeometry --shell "$W" 2>/dev/null)
+                CX=$((X + WIDTH / 2)); CY=$((Y + HEIGHT / 2))
+                DISPLAY="$DISPLAY" xdotool mousemove "$CX" "$CY" click 1 2>/dev/null
+                DISPLAY="$DISPLAY" xdotool key Return 2>/dev/null
+            done
+            for W in $(DISPLAY="$DISPLAY" xdotool search --name "MetaTrader 5" 2>/dev/null); do
+                DISPLAY="$DISPLAY" xdotool key --window "$W" Return 2>/dev/null
+            done
+            sleep 3
+        done
+    ) &
+    DISMISS_PID=$!
+
     $wine_executable /tmp/mt5setup.exe /auto
+    DISPLAY="$DISPLAY" xdotool key Return 2>/dev/null
+    sleep 2
+    kill $DISMISS_PID 2>/dev/null
     rm -f /tmp/mt5setup.exe
 fi
 

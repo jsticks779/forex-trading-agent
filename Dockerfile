@@ -23,7 +23,10 @@ RUN apt-get update && \
     cabextract \
     unzip \
     p7zip-full \
-    gnupg && \
+    gnupg \
+    xdotool \
+    x11-utils \
+    x11-apps && \
     rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -pm755 /etc/apt/keyrings && \
@@ -31,7 +34,7 @@ RUN mkdir -pm755 /etc/apt/keyrings && \
     wget -NP /etc/apt/sources.list.d/ https://dl.winehq.org/wine-builds/ubuntu/dists/noble/winehq-noble.sources && \
     dpkg --add-architecture i386 && \
     apt-get update && \
-    apt-get install -y --install-recommends winehq-stable && \
+    apt-get install -y --install-recommends winehq-staging && \
     apt-get purge winetricks -y && \
     wget -O /tmp/winetricks https://raw.githubusercontent.com/Winetricks/winetricks/master/src/winetricks && \
     chmod +x /tmp/winetricks && \
