@@ -4,6 +4,29 @@ source /scripts/02-common.sh
 
 log_message "RUNNING" "06-install-mt5.sh"
 
+# Ensure an X display is available before any Wine GUI runs (MT5 installer
+# and terminal both need a window server; on container boots this is started
+# by the base image's S6 services which may not be up yet during cont-init).
+export DISPLAY="${DISPLAY:-:0}"
+log_message "INFO" "Waiting for X display ${DISPLAY}..."
+for i in $(seq 1 120); do
+    if [ -e "/tmp/.X11-unix/X${DISPLAY#:}" ] && xdpyinfo -display "$DISPLAY" >/dev/null 2>&1; then
+        log_message "INFO" "X display ${DISPLAY} is available."
+        break
+    fi
+    sleep 2
+done
+if ! xdpyinfo -display "$DISPLAY" >/dev/null 2>&1; then
+    log_message "WARN" "X display never became available; starting a virtual framebuffer."
+    if command -v Xvfb >/dev/null 2>&1; then
+        Xvfb "$DISPLAY" -screen 0 1280x800x24 -nolisten tcp >/var/log/xvfb.log 2>&1 &
+    else
+        Xvnc "$DISPLAY" -geometry 1280x800 -depth 24 -SecurityTypes None -AlwaysShared \
+            -interface 0.0.0.0 >/var/log/xvnc-fallback.log 2>&1 &
+    fi
+    sleep 3
+fi
+
 # Check if MetaTrader 5 is installed
 if [ -e "$mt5file" ]; then
     log_message "INFO" "File $mt5file already exists."
