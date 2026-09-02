@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  mt5:
+    build:
+      context: ./headless-mt5
+      dockerfile: Dockerfile
+    container_name: mt5
+    restart: unless-stopped
+    environment:
+      - TZ=${TZ:-UTC}
+      - CUSTOM_USER=${CUSTOM_USER:-admin}
+      - PASSWORD=${PASSWORD:-changeme}
+      - WINEPREFIX=/config/.wine
+      - WINEARCH=win64
+    ports:
+      - "5001:5001"
+      - "3000:3000"
+    volumes:
+      - mt5_config:/config
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5001/ >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15m
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: forex_dashboard
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - MT5_API_BASE=http://mt5:5001/api/v1
+    depends_on:
+      - mt5
+
+volumes:
+  mt5_config:
