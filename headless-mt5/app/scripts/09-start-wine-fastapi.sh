@@ -6,7 +6,9 @@ log_message "RUNNING" "09-start-wine-fastapi.sh"
 
 log_message "INFO" "Starting FastAPI server in Wine environment..."
 
-# Run the FastAPI app using Wine's Python
+# Launch MT5 terminal and FastAPI server inside Wine
+$wine_executable "C:\Program Files\MetaTrader 5\terminal64.exe" &
+sleep 2
 $wine_executable python /app/main.py &
 
 FASTAPI_PID=$!
