@@ -17,6 +17,13 @@ set -e
 /scripts/07-install-python.sh
 /scripts/08-install-libraries.sh
 
+# Fix KasmVNC web client landing page (iframe index.html -> vnc.html & pcm-player stub)
+sed -i 's|vnc/index.html|vnc/vnc.html|g' /kclient/public/index.html 2>/dev/null || true
+mkdir -p /kclient/public/js 2>/dev/null || true
+cat << "EOF" > /kclient/public/js/pcm-player.js 2>/dev/null || true
+function PCMPlayer() { this.destroy=function(){}; this.play=function(){}; this.pause=function(){}; this.feed=function(){}; }
+EOF
+
 # Start FastAPI server inside Wine
 /scripts/09-start-wine-fastapi.sh
 
