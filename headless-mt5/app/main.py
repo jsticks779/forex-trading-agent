@@ -1418,12 +1418,12 @@ async def lifespan(app: FastAPI):
             attempt += 1
             err_info = None
             try:
-                # Try initialize with params first
-                ok = mt5.initialize(**params) if params else mt5.initialize()
+                # Try plain initialize first (attaches to already-running terminal64.exe)
+                ok = mt5.initialize()
                 if not ok:
                     err_info = mt5.last_error()
-                    # Try plain initialize as fallback
-                    ok = mt5.initialize()
+                    # Try initialize with params (launches path if needed)
+                    ok = mt5.initialize(**params) if params else False
             except Exception as e:  # noqa: BLE001
                 LOGGER.warning("MT5 attach attempt %s raised: %s", attempt, e)
                 ok = False
