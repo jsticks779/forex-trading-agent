@@ -1419,13 +1419,14 @@ async def lifespan(app: FastAPI):
             if os.getenv("MT5_PATH"):
                 params["path"] = os.getenv("MT5_PATH")
             params["timeout"] = 10000
+            params["portable"] = True
 
         while time.time() < deadline:
             attempt += 1
             err_info = None
             try:
-                # Try plain initialize first (attaches to already-running terminal64.exe)
-                ok = mt5.initialize()
+                # Try initialize with portable=True first (attaches to portable terminal64.exe)
+                ok = mt5.initialize(portable=True)
                 if not ok:
                     err_info = mt5.last_error()
                     # Try initialize with params (launches path if needed)
