@@ -8,6 +8,8 @@ log_message "INFO" "Starting FastAPI server in Wine environment..."
 
 export PYTHONUNBUFFERED=1
 
+log_message "INFO" "MT5 Config folder contents: $(ls -la '/config/.wine/drive_c/Program Files/MetaTrader 5/config' 2>/dev/null || true)"
+
 INI_PATH="/config/.wine/drive_c/mt5_startup.ini"
 if [ -n "${MT5_LOGIN:-}" ]; then
     log_message "INFO" "Generating MT5 startup configuration file at $INI_PATH..."
