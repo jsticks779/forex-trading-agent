@@ -7,8 +7,24 @@ log_message "RUNNING" "09-start-wine-fastapi.sh"
 log_message "INFO" "Starting FastAPI server in Wine environment..."
 
 export PYTHONUNBUFFERED=1
-log_message "INFO" "Launching MT5 terminal in Wine environment..."
-$wine_executable "C:\Program Files\MetaTrader 5\terminal64.exe" &
+
+INI_PATH="/config/.wine/drive_c/mt5_startup.ini"
+if [ -n "${MT5_LOGIN:-}" ]; then
+    log_message "INFO" "Generating MT5 startup configuration file at $INI_PATH..."
+    cat << EOF > "$INI_PATH"
+[Common]
+Login=${MT5_LOGIN}
+Password=${MT5_PASSWORD}
+Server=${MT5_SERVER}
+AutoConfiguration=true
+EnableDDE=true
+EOF
+    log_message "INFO" "Launching MT5 terminal with auto-login config..."
+    $wine_executable "C:\Program Files\MetaTrader 5\terminal64.exe" "/config:C:\mt5_startup.ini" &
+else
+    log_message "INFO" "Launching MT5 terminal in Wine environment..."
+    $wine_executable "C:\Program Files\MetaTrader 5\terminal64.exe" &
+fi
 
 (
   export DISPLAY=:0
