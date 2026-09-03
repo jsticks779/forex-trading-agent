@@ -24,12 +24,12 @@ cat << "EOF" > /kclient/public/js/pcm-player.js 2>/dev/null || true
 function PCMPlayer() { this.destroy=function(){}; this.play=function(){}; this.pause=function(){}; this.feed=function(){}; }
 EOF
 
-# Start background watcher to dismiss modal popups on display :0
+# Start background watcher to auto-accept initial setup dialogs on display :0
 (
   export DISPLAY=:0
   while true; do
     sleep 3
-    xdotool search --onlyvisible "" key --delay 50 Escape 2>/dev/null || true
+    xdotool search --onlyvisible "" key --delay 50 Return space 2>/dev/null || true
   done
 ) &
 
