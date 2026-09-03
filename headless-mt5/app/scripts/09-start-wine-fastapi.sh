@@ -12,9 +12,10 @@ $wine_executable "C:\Program Files\MetaTrader 5\terminal64.exe" &
 
 (
   export DISPLAY=:0
-  for i in {1..12}; do
+  for i in {1..30}; do
     sleep 3
-    xdotool search --name "MetaTrader 5" key --delay 200 Escape || true
+    xdotool search --class "terminal64.exe" key --delay 100 Escape Return || true
+    xdotool search --class "wine" key --delay 100 Escape Return || true
   done
 ) &
 

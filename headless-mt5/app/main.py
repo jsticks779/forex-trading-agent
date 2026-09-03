@@ -1454,6 +1454,7 @@ async def lifespan(app: FastAPI):
                 err_info,
             )
             sys.stdout.flush()
+            os.system("export DISPLAY=:0; xdotool search --class 'terminal64.exe' key Escape Return 2>/dev/null || true")
             time.sleep(15)
 
     t = threading.Thread(target=_attach_loop, daemon=True)
