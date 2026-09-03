@@ -1,8 +1,14 @@
 import asyncio
 import logging
 import os
+import sys
 import threading
 import time
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(line_buffering=True)
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(line_buffering=True)
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -1432,12 +1438,14 @@ async def lifespan(app: FastAPI):
             if ok:
                 mt5_service._initialized = True
                 LOGGER.info("Attached to MT5 terminal (attempt %s).", attempt)
+                sys.stdout.flush()
                 if login_val and password_val and server_val:
                     login_ok = mt5.login(login=login_val, password=password_val, server=server_val)
                     if login_ok:
                         LOGGER.info("Successfully logged into MT5 account %s on %s.", login_val, server_val)
                     else:
                         LOGGER.warning("mt5.login() returned False: %s", mt5.last_error())
+                    sys.stdout.flush()
                 return
 
             LOGGER.info(
@@ -1445,6 +1453,7 @@ async def lifespan(app: FastAPI):
                 attempt,
                 err_info,
             )
+            sys.stdout.flush()
             time.sleep(15)
 
     t = threading.Thread(target=_attach_loop, daemon=True)

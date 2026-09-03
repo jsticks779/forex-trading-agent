@@ -6,6 +6,7 @@ log_message "RUNNING" "09-start-wine-fastapi.sh"
 
 log_message "INFO" "Starting FastAPI server in Wine environment..."
 
+export PYTHONUNBUFFERED=1
 log_message "INFO" "Launching MT5 terminal in Wine environment..."
 $wine_executable "C:\Program Files\MetaTrader 5\terminal64.exe" &
 sleep 5
