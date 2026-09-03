@@ -27,11 +27,8 @@ EOF
 # Start FastAPI server inside Wine
 /scripts/09-start-wine-fastapi.sh
 
-# Start Apex FX Streamlit Dashboard on port 8501
-python3 -m streamlit run /app/app/dashboard/app.py --server.port=8501 --server.address=0.0.0.0 &
+# Streamlit dashboard is started by the supervised S6 service
+# (root/etc/services.d/streamlit/run) so it runs alongside KasmVNC.
 
 log_message "INFO" "------------------------------------------------"
 log_message "INFO" "Container is ready."
-
-# Keep the script running
-tail -f /dev/null

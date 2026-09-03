@@ -25,8 +25,12 @@ API_PREFIX = "/api/v1"
 class MT5Client:
     """Thin, typed wrapper around the headless-mt5 HTTP API."""
 
-    def __init__(self, base_url: str = DEFAULT_BASE_URL, timeout: int = 30):
-        self.base_url = base_url.rstrip("/")
+    def __init__(self, base_url: Optional[str] = None, timeout: int = 30):
+        from app.config import MT5_API_BASE
+        url = (base_url or MT5_API_BASE or DEFAULT_BASE_URL).rstrip("/")
+        if url.endswith("/api/v1"):
+            url = url[:-7]
+        self.base_url = url
         self.timeout = timeout
         self.session = requests.Session()
 
@@ -35,18 +39,51 @@ class MT5Client:
         return f"{self.base_url}{API_PREFIX}{path}"
 
     def _get(self, path: str, params: Optional[dict] = None) -> Any:
-        resp = self.session.get(self._url(path), params=params, timeout=self.timeout)
-        resp.raise_for_status()
-        return resp.json()
+        candidates = [self.base_url, "http://mt5:5001", "http://host.docker.internal:5001", "http://localhost:5001"]
+        last_exc = None
+        for candidate in dict.fromkeys(candidates):
+            self.base_url = candidate.rstrip("/")
+            if self.base_url.endswith("/api/v1"):
+                self.base_url = self.base_url[:-7]
+            try:
+                resp = self.session.get(self._url(path), params=params, timeout=self.timeout)
+                resp.raise_for_status()
+                return resp.json()
+            except requests.exceptions.ConnectionError as exc:
+                last_exc = exc
+                continue
+        if last_exc:
+            raise last_exc
 
     def _post(self, path: str, json: Optional[dict] = None) -> Any:
-        resp = self.session.post(self._url(path), json=json or {}, timeout=self.timeout)
-        resp.raise_for_status()
-        return resp.json()
+        candidates = [self.base_url, "http://mt5:5001", "http://host.docker.internal:5001", "http://localhost:5001"]
+        last_exc = None
+        for candidate in dict.fromkeys(candidates):
+            self.base_url = candidate.rstrip("/")
+            if self.base_url.endswith("/api/v1"):
+                self.base_url = self.base_url[:-7]
+            try:
+                resp = self.session.post(self._url(path), json=json or {}, timeout=self.timeout)
+                resp.raise_for_status()
+                return resp.json()
+            except requests.exceptions.ConnectionError as exc:
+                last_exc = exc
+                continue
+        if last_exc:
+            raise last_exc
 
     # ---- connection / health ----------------------------------------------
     def health(self) -> Any:
-        return self.session.get(self.base_url + "/", timeout=self.timeout).json()
+        candidates = [self.base_url, "http://mt5:5001", "http://host.docker.internal:5001", "http://localhost:5001"]
+        for candidate in dict.fromkeys(candidates):
+            self.base_url = candidate.rstrip("/")
+            if self.base_url.endswith("/api/v1"):
+                self.base_url = self.base_url[:-7]
+            try:
+                return self.session.get(self.base_url + "/", timeout=self.timeout).json()
+            except requests.exceptions.ConnectionError:
+                continue
+        return {}
 
     def connect(self, **params) -> Any:
         return self._post("/connect", params or None)

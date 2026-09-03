@@ -9,5 +9,10 @@ if [ ! -d "/config/.wine/drive_c" ]; then
     s6-setuidgid abc wineboot --init
 fi
 
-# Kick off the installer and service start sequence as user abc
-exec s6-setuidgid abc /scripts/01-start.sh
+# Launch the installer + service sequence as user abc in the background so that
+# the cont-init phase returns immediately. This is required: if this script
+# blocks (the installer + service script would otherwise hold it open), s6-overlay
+# never reaches the services phase and the KasmVNC/Xvnc + websockify desktop
+# services never start (web UI on 3000 serves, but noVNC cannot connect, 502).
+nohup s6-setuidgid abc /scripts/01-start.sh >> /var/log/start.log 2>&1 &
+echo "[cont-init] 01-start.sh launched in background (PID $!)"

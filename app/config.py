@@ -12,7 +12,8 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 load_dotenv(PROJECT_ROOT / ".env")
 
 # MT5 REST API (headless-mt5 container).
-MT5_API_BASE = os.getenv("MT5_API_BASE", "http://localhost:5001")
+_default_api = "http://mt5:5001" if os.path.exists("/.dockerenv") else "http://localhost:5001"
+MT5_API_BASE = os.getenv("MT5_API_BASE", _default_api)
 
 # Backend to use: "mt5" (REST container) or "oanda" (direct REST).
 BROKER = os.getenv("BROKER", "mt5").lower()
