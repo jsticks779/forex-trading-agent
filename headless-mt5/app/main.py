@@ -1453,6 +1453,13 @@ async def lifespan(app: FastAPI):
                 attempt,
                 err_info,
             )
+            if attempt == 1:
+                try:
+                    import subprocess
+                    win_tree = subprocess.check_output("export DISPLAY=:0; xwininfo -root -tree 2>/dev/null | grep -i -E 'metatrader|terminal|wine|login|account|dialog|#32770' || true", shell=True, text=True)
+                    LOGGER.info("X11 Windows on attempt 1:\n%s", win_tree.strip())
+                except Exception as e:
+                    LOGGER.warning("Could not dump xwininfo: %s", e)
             sys.stdout.flush()
             time.sleep(15)
 
