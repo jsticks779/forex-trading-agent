@@ -1,6 +1,7 @@
 import asyncio
 import logging
-import os
+import threading
+import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -1371,39 +1372,6 @@ class OrderCloseRequest(BaseModel):
 mt5_service = MT5Service()
 
 
-def _connect_params_from_env() -> Dict[str, Any]:
-    """
-    Build MT5 connect() params from environment variables.
-
-    Returns an empty dict when no login is configured, so the caller can decide
-    not to auto-connect. `login` is required; password/server are optional but
-    strongly recommended so the terminal actually logs in.
-    """
-    login_raw = os.getenv("MT5_LOGIN", "").strip()
-    if not login_raw:
-        return {}
-    try:
-        login = int(login_raw)
-    except ValueError:
-        LOGGER.warning("MT5_LOGIN is not a valid int: %r", login_raw)
-        login = None
-
-    params: Dict[str, Any] = {}
-    if login is not None:
-        params["login"] = login
-    password = os.getenv("MT5_PASSWORD", "").strip()
-    if password:
-        params["password"] = password
-    server = os.getenv("MT5_SERVER", "").strip()
-    if server:
-        params["server"] = server
-    if os.getenv("MT5_PATH", "").strip():
-        params["path"] = os.getenv("MT5_PATH").strip()
-    if os.getenv("MT5_PORTABLE", "").strip().lower() in ("1", "true", "yes"):
-        params["portable"] = True
-    return params
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -1412,29 +1380,33 @@ async def lifespan(app: FastAPI):
     Ensures proper cleanup of MT5 connection on application shutdown.
     """
     LOGGER.info("MT5 API Service is starting...")
-    # Auto-connect on startup using environment-provided broker credentials
-    # (set in Coolify / host env). If none are set we still try to attach to the
-    # terminal that is already running, but we do not fail the app if it isn't
-    # ready yet -- the /api/v1/connect endpoint can be called later.
-    connect_params = _connect_params_from_env()
-    if connect_params:
-        LOGGER.info(
-            "Auto-connecting to MT5 with credentials from environment "
-            "(login %s, server %s).",
-            connect_params.get("login"),
-            connect_params.get("server"),
-        )
-        try:
-            await asyncio.get_event_loop().run_in_executor(
-                executor,
-                lambda: mt5_service.connect(connect_params),
+    # Attach to the running MT5 terminal in the background so we never block
+    # startup. On a fresh install the terminal still needs a one-time login via
+    # the VNC desktop; once that is done (or if credentials are already saved in
+    # /config) this loop attaches and the data endpoints start returning data.
+    def _attach_loop():
+        deadline = time.time() + 600
+        attempt = 0
+        while time.time() < deadline:
+            attempt += 1
+            try:
+                ok = mt5.initialize()
+            except Exception as e:  # noqa: BLE001
+                LOGGER.warning("MT5 attach attempt %s raised: %s", attempt, e)
+                ok = False
+            if ok:
+                mt5_service._initialized = True
+                LOGGER.info("Attached to running MT5 terminal (attempt %s).", attempt)
+                return
+            LOGGER.info(
+                "MT5 terminal not ready on attempt %s (one-time VNC login may "
+                "still be required); retrying in 15s.",
+                attempt,
             )
-        except HTTPException as e:
-            LOGGER.warning("Startup MT5 auto-connect failed: %s", e.detail)
-        except Exception as e:  # noqa: BLE001
-            LOGGER.warning("Startup MT5 auto-connect raised: %s", e)
-    else:
-        LOGGER.info("No MT5 credentials in environment; skipping startup auto-connect.")
+            time.sleep(15)
+
+    t = threading.Thread(target=_attach_loop, daemon=True)
+    t.start()
     yield
     # Cleanup on shutdown
     LOGGER.info("FastAPI application shutting down")
