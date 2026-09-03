@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -1385,12 +1386,29 @@ async def lifespan(app: FastAPI):
     # the VNC desktop; once that is done (or if credentials are already saved in
     # /config) this loop attaches and the data endpoints start returning data.
     def _attach_loop():
-        deadline = time.time() + 600
+        deadline = time.time() + 900
         attempt = 0
+        # If broker credentials are provided via env (MT5_LOGIN/MT5_PASSWORD/
+        # MT5_SERVER/MT5_PATH), log the terminal in programmatically. Otherwise
+        # fall back to a plain attach (only works if the terminal is already
+        # logged in / auto-connected from a saved /config profile).
+        params = {}
+        login_raw = os.getenv("MT5_LOGIN")
+        if login_raw:
+            try:
+                params["login"] = int(login_raw)
+            except (TypeError, ValueError):
+                LOGGER.warning("MT5_LOGIN is not a valid integer: %r", login_raw)
+            if os.getenv("MT5_PASSWORD"):
+                params["password"] = os.getenv("MT5_PASSWORD")
+            if os.getenv("MT5_SERVER"):
+                params["server"] = os.getenv("MT5_SERVER")
+            if os.getenv("MT5_PATH"):
+                params["path"] = os.getenv("MT5_PATH")
         while time.time() < deadline:
             attempt += 1
             try:
-                ok = mt5.initialize()
+                ok = mt5.initialize(**params) if params else mt5.initialize()
             except Exception as e:  # noqa: BLE001
                 LOGGER.warning("MT5 attach attempt %s raised: %s", attempt, e)
                 ok = False
