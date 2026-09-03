@@ -1418,7 +1418,7 @@ async def lifespan(app: FastAPI):
                 params["server"] = server_val
             if os.getenv("MT5_PATH"):
                 params["path"] = os.getenv("MT5_PATH")
-            params["timeout"] = 60000
+            params["timeout"] = 10000
 
         while time.time() < deadline:
             attempt += 1
