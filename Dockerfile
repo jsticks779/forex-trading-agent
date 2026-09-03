@@ -47,9 +47,9 @@ WORKDIR /app
 COPY requirements.txt /app/requirements.txt
 RUN pip3 install --no-cache-dir --break-system-packages -r /app/requirements.txt || true
 
+COPY . /app/
 COPY headless-mt5/app/ /app/
 COPY headless-mt5/app/scripts /scripts
-COPY . /app/
 
 RUN dos2unix /scripts/*.sh && \
     chmod +x /scripts/*.sh && \
