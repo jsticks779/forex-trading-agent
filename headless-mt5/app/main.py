@@ -1393,33 +1393,57 @@ async def lifespan(app: FastAPI):
         # fall back to a plain attach (only works if the terminal is already
         # logged in / auto-connected from a saved /config profile).
         params = {}
+        login_val = None
+        password_val = None
+        server_val = None
+
         login_raw = os.getenv("MT5_LOGIN")
         if login_raw:
             try:
-                params["login"] = int(login_raw)
+                login_val = int(login_raw)
+                params["login"] = login_val
             except (TypeError, ValueError):
                 LOGGER.warning("MT5_LOGIN is not a valid integer: %r", login_raw)
             if os.getenv("MT5_PASSWORD"):
-                params["password"] = os.getenv("MT5_PASSWORD")
+                password_val = os.getenv("MT5_PASSWORD")
+                params["password"] = password_val
             if os.getenv("MT5_SERVER"):
-                params["server"] = os.getenv("MT5_SERVER")
+                server_val = os.getenv("MT5_SERVER")
+                params["server"] = server_val
             if os.getenv("MT5_PATH"):
                 params["path"] = os.getenv("MT5_PATH")
+            params["timeout"] = 60000
+
         while time.time() < deadline:
             attempt += 1
+            err_info = None
             try:
+                # Try initialize with params first
                 ok = mt5.initialize(**params) if params else mt5.initialize()
+                if not ok:
+                    err_info = mt5.last_error()
+                    # Try plain initialize as fallback
+                    ok = mt5.initialize()
             except Exception as e:  # noqa: BLE001
                 LOGGER.warning("MT5 attach attempt %s raised: %s", attempt, e)
                 ok = False
+                err_info = mt5.last_error()
+
             if ok:
                 mt5_service._initialized = True
-                LOGGER.info("Attached to running MT5 terminal (attempt %s).", attempt)
+                LOGGER.info("Attached to MT5 terminal (attempt %s).", attempt)
+                if login_val and password_val and server_val:
+                    login_ok = mt5.login(login=login_val, password=password_val, server=server_val)
+                    if login_ok:
+                        LOGGER.info("Successfully logged into MT5 account %s on %s.", login_val, server_val)
+                    else:
+                        LOGGER.warning("mt5.login() returned False: %s", mt5.last_error())
                 return
+
             LOGGER.info(
-                "MT5 terminal not ready on attempt %s (one-time VNC login may "
-                "still be required); retrying in 15s.",
+                "MT5 terminal not ready on attempt %s (last_error=%s); retrying in 15s.",
                 attempt,
+                err_info,
             )
             time.sleep(15)
 

@@ -17,7 +17,8 @@ else
     log_message "INFO" "MT5_LOGIN provided; letting FastAPI startup auto-connect own the terminal."
 fi
 sleep 2
-$wine_executable python /app/main.py &
+export PYTHONUNBUFFERED=1
+$wine_executable python -u /app/main.py &
 
 FASTAPI_PID=$!
 
