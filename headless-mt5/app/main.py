@@ -1456,7 +1456,7 @@ async def lifespan(app: FastAPI):
             if attempt == 1:
                 try:
                     import subprocess
-                    win_tree = subprocess.check_output("export DISPLAY=:0; xwininfo -root -children 2>/dev/null || true", shell=True, text=True)
+                    win_tree = subprocess.check_output(["bash", "-c", "export DISPLAY=:0; xwininfo -root -children"], text=True)
                     LOGGER.info("X11 Window Children on attempt 1:\n%s", win_tree.strip())
                 except Exception as e:
                     LOGGER.warning("Could not dump xwininfo: %s", e)
